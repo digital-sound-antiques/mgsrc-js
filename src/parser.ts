@@ -84,14 +84,14 @@ export function parseVoiceTrack(data: ArrayBuffer): VoiceData {
   while (idx < v.byteLength) {
     let cmd = v.getUint8(idx++);
     if (cmd === 0x00) {
-      const number = v.getUint8(idx++);
+      const number = v.getUint8(idx++) & 0x1f;
       const patch = [];
       for (let i = 0; i < 8; i++) {
         patch.push(v.getUint8(idx++));
       }
       opllPatches.push({ number, data: patch });
     } else if (cmd === 0x02) {
-      const number = v.getUint8(idx++);
+      const number = v.getUint8(idx++) & 0x1f;
       const m = v.getUint8(idx++);
       const mode = (m & 0x7f) >> 5;
       const nfreq = m & 0x1f;
@@ -110,7 +110,7 @@ export function parseVoiceTrack(data: ArrayBuffer): VoiceData {
         envelopes.push({ type: "@r", number, mode, nfreq, al, ar, dr, sl, sr, rr });
       }
     } else if (cmd === 0x03) {
-      const number = v.getUint8(idx++);
+      const number = v.getUint8(idx++) & 0x1f;
       const patch = [];
       for (let i = 0; i < 32; i++) {
         patch.push(v.getUint8(idx++));
