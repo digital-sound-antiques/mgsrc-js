@@ -250,7 +250,11 @@ export function parseTrack(data: ArrayBuffer, track: number, rhythm: boolean): T
       _wrt({ mml: "]" });
     } else if (cmd === 0x5a) {
       const n = v.getUint8(idx++);
-      _wrt({ mml: 0 < n ? "ho" : "hf" });
+      if (rhythm) {
+        _wrt({ mml: 0 < n ? "ko" : "kf" });
+      } else {
+        _wrt({ mml: 0 < n ? "ho" : "hf" });
+      }
     } else if (cmd === 0x5b) {
       const n = v.getUint8(idx++);
       _wrt({ mml: 0 < n ? "so" : "sf" });
@@ -300,6 +304,9 @@ export function parseMGS(data: ArrayBuffer): MGSObject {
     throw new Error("Not a MGS format.");
   }
   const version = String.fromCharCode(d.getUint8(3), d.getUint8(4), d.getUint8(5));
+  if (/^A/.test(version)) {
+    throw new Error(`Unsupported format. This MGS file is compressed with MGSARC.`);
+  }
   if (parseInt(version) < 310) {
     throw new Error(
       `Unsupported format version: v${version.substr(0, 1)}.${version.substr(1)}. v3.10 or greater version is required.`
