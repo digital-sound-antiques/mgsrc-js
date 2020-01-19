@@ -307,7 +307,7 @@ export function parseMGS(data: ArrayBuffer): MGSObject {
   if (/^A/.test(version)) {
     throw new Error(`Unsupported format. This MGS file is compressed with MGSARC.`);
   }
-  if (parseInt(version) < 310) {
+  if (parseInt(version) < 304) {
     throw new Error(
       `Unsupported format version: v${version.substr(0, 1)}.${version.substr(1)}. v3.10 or greater version is required.`
     );
