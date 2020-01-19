@@ -81,16 +81,28 @@ export function buildAllocList(mgs: MGSObject) {
   for (const key in allocMap) {
     res.push(`${getTrackHeader(parseInt(key))}=${allocMap[key]}`);
   }
-  return `${res.join(", ")}`;
+  return `{ ${res.join(", ")} }`;
 }
 
 export function buildMMLHeader(mgs: MGSObject) {
-  return `#opll_mode ${mgs.settings.opllMode}
+  const titleLines = mgs.title
+    .split(/\r\n/)
+    .filter(e => e !== "")
+    .map(e => `"${e}"`);
+
+  let titleBlock;
+  if (2 <= titleLines.length) {
+    titleBlock = `{\n  ${titleLines.join("\n  ")}\n}`;
+  } else {
+    titleBlock = `{ ${titleLines.join("\n")} }`;
+  }
+  return `; MML decompiled from MGS${mgs.version} object.
+#opll_mode ${mgs.settings.opllMode}
 #lfo_mode ${mgs.settings.lfoMode}
 #machine_id ${mgs.settings.machineId}
-#title { "${mgs.title.replace(/\r\n$/, "")}" }
-#tempo ${mgs.tempo || 120}
-#alloc { ${buildAllocList(mgs)}}
+#title ${titleBlock}
+#tempo ${mgs.tempo}
+#alloc ${buildAllocList(mgs)}
 `;
 }
 

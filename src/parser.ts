@@ -11,7 +11,7 @@ import {
   TrackData
 } from "./types";
 
-const notes = ["c", "c+", "d", "d+", "e", "f", "f+", "g", "g+", "a", "a+", "b", "r"];
+const notes = ["c", "c+", "d", "d+", "e", "f", "f+", "g", "g+", "a", "a+", "b", "r", "r", "r", "r"];
 
 function c2l(n: number): string {
   if (192 % n === 0) {
@@ -148,9 +148,16 @@ export function parseTrack(data: ArrayBuffer, track: number, rhythm: boolean): T
     } else if (rhythm && (cmd & 0xe0) === 0xa0) {
       const flag = cmd & 0x1f;
       _wrt({ mml: getRhythmNote(flag) + ":", count: lvalue });
+    } else if (cmd <= 0x0c) {
+      // mgsdrv 3.00 command.
+      const n = v.getUint8(idx++);
+      _wrt({ mml: `${notes[cmd & 0xf]}${c2l(n)}`, count: n });
+    } else if (0x10 <= cmd && cmd <= 0x1c) {
+      // mgsdrv 3.00 command.
+      _wrt({ mml: notes[cmd & 0xf], count: lvalue });
     } else if (0x20 <= cmd && cmd <= 0x2f) {
       const n = v.getUint8(idx++);
-      _wrt({ mml: `${notes[cmd & 0xf]}${c2l(n)}`, count: lvalue });
+      _wrt({ mml: `${notes[cmd & 0xf]}${c2l(n)}`, count: n });
     } else if (0x30 <= cmd && cmd <= 0x3f) {
       _wrt({ mml: notes[cmd & 0xf], count: lvalue });
     } else if (cmd === 0x40) {
@@ -162,6 +169,11 @@ export function parseTrack(data: ArrayBuffer, track: number, rhythm: boolean): T
       _wrt({ mml: "t" + value });
     } else if (cmd === 0x42) {
       const n = v.getUint8(idx++);
+      _wrt({ mml: "l" + c2l(n) });
+    } else if (cmd === 0x43) {
+      // mgsdrv 3.00 command.
+      const n = v.getUint16(idx, true);
+      idx += 2;
       _wrt({ mml: "l" + c2l(n) });
     } else if (cmd === 0x44) {
       const n = v.getUint8(idx++);
@@ -288,6 +300,11 @@ export function parseMGS(data: ArrayBuffer): MGSObject {
     throw new Error("Not a MGS format.");
   }
   const version = String.fromCharCode(d.getUint8(3), d.getUint8(4), d.getUint8(5));
+  if (parseInt(version) < 310) {
+    throw new Error(
+      `Unsupported format version: v${version.substr(0, 1)}.${version.substr(1)}. v3.10 or greater version is required.`
+    );
+  }
   const titleArray = [];
   let offset = 0;
   for (let i = 8; i < d.byteLength - 1; i++) {
@@ -313,7 +330,7 @@ export function parseMGS(data: ArrayBuffer): MGSObject {
     disableReverseCompile: flags & 0x80 ? true : false
   };
 
-  const tempo = d.getUint16(offset, true);
+  let tempo = d.getUint16(offset, true) || 75;
   offset += 2;
 
   let voice: VoiceData | null = null;
@@ -328,7 +345,8 @@ export function parseMGS(data: ArrayBuffer): MGSObject {
       if (i === 0) {
         voice = parseVoiceTrack(binary);
       } else {
-        tracks[i] = parseTrack(binary, i, settings.opllMode === 1 && i === 15);
+        const t = parseTrack(binary, i, settings.opllMode === 1 && i === 15);
+        tracks[i] = t;
       }
       rawTracks[i] = binary;
     } else {
