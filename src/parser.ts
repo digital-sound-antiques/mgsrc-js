@@ -185,7 +185,7 @@ export function parseTrack(data: ArrayBuffer, track: number, rhythm: boolean): T
     } else if (cmd === 0x47) {
       const n = v.getUint8(idx++);
       const r = n >> 5;
-      _wrt({ mml: ["vb", "vs", "vm", "vc", "vh"][r] + (n & 0x10 ? "-" : "+") + (n & 0xf) });
+      _wrt({ mml: ["vb", "vs", "vm", "vc", "vh"][r] + (n & 0x10 ? "-" + (0x10 - (n & 0xf)) : "+" + (n & 0xf)) });
     } else if (cmd === 0x46) {
       const voff = v.getInt8(idx++);
       _wrt({ mml: voff >= 0 ? `v+${voff}` : `v${voff}` });
@@ -251,7 +251,7 @@ export function parseTrack(data: ArrayBuffer, track: number, rhythm: boolean): T
     } else if (cmd === 0x5a) {
       const n = v.getUint8(idx++);
       if (rhythm) {
-        _wrt({ mml: 0 < n ? "ko" : "kf" });
+        _wrt({ mml: 0 < n ? "kf" : "ko" });
       } else {
         _wrt({ mml: 0 < n ? "ho" : "hf" });
       }

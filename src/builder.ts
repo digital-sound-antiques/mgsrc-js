@@ -1,14 +1,4 @@
-import {
-  SccPatch,
-  OpllPatch,
-  Envelope,
-  StepEnvelope,
-  ADSREnvelope,
-  VoiceData,
-  MGSObject,
-  TrackCommand,
-  TrackData
-} from "./types";
+import { SccPatch, OpllPatch, Envelope, StepEnvelope, ADSREnvelope, VoiceData, MGSObject, TrackData } from "./types";
 
 import { toOPLLVoice } from "./opll-voice";
 
@@ -90,17 +80,19 @@ export function buildMMLHeader(mgs: MGSObject) {
     .filter(e => e !== "")
     .map(e => `"${e}"`);
 
-  let titleBlock;
+  let titleCommand;
   if (2 <= titleLines.length) {
-    titleBlock = `{\n  ${titleLines.join("\n  ")}\n}`;
+    titleCommand = `#title {\n  ${titleLines.join("\n  ")}\n}`;
+  } else if (titleLines.length == 0 || titleLines[0] == '""') {
+    titleCommand = "";
   } else {
-    titleBlock = `{ ${titleLines.join("\n")} }`;
+    titleCommand = `#title { ${titleLines.join("\n")} }`;
   }
   return `; MML decompiled from MGS${mgs.version} object.
 #opll_mode ${mgs.settings.opllMode}
 #lfo_mode ${mgs.settings.lfoMode}
 #machine_id ${mgs.settings.machineId}
-#title ${titleBlock}
+${titleCommand}
 #tempo ${mgs.tempo}
 #alloc ${buildAllocList(mgs)}
 `;
@@ -121,28 +113,34 @@ export function buildVoiceMML(data: VoiceData): string {
 }
 
 export function buildTrackMML(data: TrackData): string {
-  const H = getTrackHeader(data.track);
-  const res = [];
+  const lines = Array<string>();
+  let line = "";
   let stepCount = 0;
   let inPortamento = false;
 
-  res.push(`\n${H} `);
+  const commitLine = () => {
+    lines.push(line);
+    line = "";
+    stepCount = 0;
+  };
   for (const cmd of data.commands) {
+    if (80 <= line.length) {
+      commitLine();
+    }
     if (cmd.count) {
-      if (!inPortamento && stepCount > 192) {
-        res.push(`\n${H} `);
-        stepCount = 0;
+      if (!inPortamento && stepCount > 192 * 2) {
+        commitLine();
       }
       stepCount += cmd.count;
     }
+
     if (cmd.cmd === 0x57) {
-      if (!inPortamento && (cmd.loop === 0 || stepCount > 192)) {
-        res.push(`\n${H} `);
-        stepCount = 0;
+      if (!inPortamento && (cmd.loop === 0 || stepCount > 192 * 2)) {
+        commitLine();
       }
-      res.push(cmd.mml + " ");
+      line += cmd.mml + " ";
     } else {
-      res.push(cmd.mml);
+      line += cmd.mml;
     }
 
     if (cmd.cmd === 0x53) {
@@ -151,7 +149,11 @@ export function buildTrackMML(data: TrackData): string {
       inPortamento = false;
     }
   }
-  return res.join("");
+
+  commitLine();
+
+  const H = getTrackHeader(data.track);
+  return lines.map(line => `${H} ${line}`).join("\n");
 }
 
 export function buildMML(mgs: MGSObject): string {
@@ -166,6 +168,7 @@ export function buildMML(mgs: MGSObject): string {
     const track = mgs.tracks[i];
     if (track) {
       res.push(buildTrackMML(track));
+      res.push("");
     }
   }
 
