@@ -16,7 +16,7 @@ import { WSAECONNREFUSED } from "constants";
 const notes = ["c", "c+", "d", "d+", "e", "f", "f+", "g", "g+", "a", "a+", "b", "r", "r", "r", "r"];
 
 function c2l(n: number): string {
-  if (2 < n) {
+  if (1 < n) {
     if (192 % n === 0) {
       return `${192 / n}`;
     }
