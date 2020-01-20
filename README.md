@@ -1,4 +1,4 @@
-# mgsrc-js
+# mgsrc-js [![npm version](https://badge.fury.io/js/mgsrc-js.svg)](https://badge.fury.io/js/mgsrc-js)
 
 A decompiler for MGSDRV format.
 
