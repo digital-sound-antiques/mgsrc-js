@@ -1,6 +1,6 @@
 # mgsrc-js
 
-A decompiler for MGSDRV format binary.
+A decompiler for MGSDRV format.
 
 - [mgs data format](https://github.com/digital-sound-antiques/mgsc/blob/master/mgs-format.md)
 
