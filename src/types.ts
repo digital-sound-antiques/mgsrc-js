@@ -10,6 +10,11 @@ export type TextResource = {
   text: string;
 };
 
+export type OpllPatchMap = {
+  from: number;
+  to: number;
+};
+
 export type StepEnvelope = Envelope & {
   commands: Array<any>;
 };
@@ -49,6 +54,7 @@ export type SccPatch = {
 export type VoiceData = {
   byteLength: number;
   opllPatches: Array<OpllPatch>;
+  opllPatchMaps: Array<OpllPatchMap>;
   envelopes: Array<StepEnvelope | ADSREnvelope>;
   sccPatches: Array<SccPatch>;
   texts: Array<TextResource>;

@@ -121,19 +121,28 @@ export function buildVoiceMML(data: VoiceData): string {
   for (const patch of data.opllPatches) {
     res.push(declareOpllVoice(patch));
   }
-  res.push("");
+  if (0 < data.opllPatches.length) res.push("");
+
+  for (const map of data.opllPatchMaps) {
+    res.push(`@#${map.from}=${map.to}`);
+  }
+  if (0 < data.opllPatchMaps.length) res.push("");
+
   for (const patch of data.sccPatches) {
     res.push(declareSccVoice(patch));
   }
-  res.push("");
+  if (0 < data.sccPatches.length) res.push("");
+
   for (const envelope of data.envelopes) {
     res.push(declareEnvelope(envelope));
   }
-  res.push("");
+  if (0 < data.envelopes.length) res.push("");
+
   for (const text of data.texts) {
     res.push(declareText(text));
   }
-  res.push("");
+  if (0 < data.texts.length) res.push("");
+
   return res.join("\n");
 }
 

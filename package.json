@@ -1,6 +1,6 @@
 {
   "name": "mgsrc-js",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Reverse Compiler for MGSDRV",
   "main": "dist/index.js",
   "bin": {

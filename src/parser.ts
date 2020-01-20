@@ -9,9 +9,9 @@ import {
   MGSObject,
   TrackCommand,
   TrackData,
-  TextResource
+  TextResource,
+  OpllPatchMap
 } from "./types";
-import { WSAECONNREFUSED } from "constants";
 
 const notes = ["c", "c+", "d", "d+", "e", "f", "f+", "g", "g+", "a", "a+", "b", "r", "r", "r", "r"];
 
@@ -116,6 +116,7 @@ export function parseVoiceTrack(data: ArrayBuffer): VoiceData {
   const opllPatches = Array<OpllPatch>();
   const sccPatches = Array<SccPatch>();
   const envelopes = Array<StepEnvelope | ADSREnvelope>();
+  const opllPatchMaps = Array<OpllPatchMap>();
   const texts = Array<TextResource>();
   const v = new DataView(data);
   while (idx < v.byteLength) {
@@ -127,6 +128,10 @@ export function parseVoiceTrack(data: ArrayBuffer): VoiceData {
         patch.push(v.getUint8(idx++));
       }
       opllPatches.push({ number: number & 0x1f, data: patch });
+    } else if (cmd === 0x01) {
+      const from = v.getUint8(idx++);
+      const to = v.getUint8(idx++);
+      opllPatchMaps.push({ from, to });
     } else if (cmd === 0x02) {
       const number = v.getUint8(idx++) & 0x1f;
       const m = v.getUint8(idx++);
@@ -173,6 +178,7 @@ export function parseVoiceTrack(data: ArrayBuffer): VoiceData {
   return {
     byteLength: idx,
     opllPatches,
+    opllPatchMaps,
     envelopes,
     texts,
     sccPatches,
