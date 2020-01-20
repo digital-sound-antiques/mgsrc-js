@@ -61,8 +61,7 @@ export function parseStepEnvelope(data: ArrayBuffer): Array<{ mml: string }> {
     } else if (cmd === 0x40) {
       res.push({ mml: "[" });
     } else if (cmd === 0x60) {
-      const n = v.getUint8(idx++);
-      res.push({ mml: `]${n}.` });
+      res.push({ mml: `]` });
     } else if (0x80 <= cmd && cmd <= 0x9f) {
       res.push({ mml: `n${cmd & 0x1f}.` });
     } else if (0xa0 <= cmd && cmd <= 0xaf) {
@@ -70,6 +69,8 @@ export function parseStepEnvelope(data: ArrayBuffer): Array<{ mml: string }> {
     } else if (0xe0 <= cmd && cmd <= 0xef) {
       const n = v.getUint8(idx++);
       res.push({ mml: `${(cmd & 0xf).toString(16)}:${n}.` });
+    } else {
+      throw new Error("Unknown Envelope Command: 0x" + cmd.toString(16));
     }
   }
   return res;
