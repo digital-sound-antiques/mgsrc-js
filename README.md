@@ -2,6 +2,12 @@
 
 A decompiler for MGSDRV format binary. 
 
+# Install
+```
+npm install -g mgsrc-js
+```
+
+# Usage
 ```
 SYNOPSIS
 
