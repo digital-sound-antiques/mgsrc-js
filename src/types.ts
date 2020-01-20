@@ -5,6 +5,11 @@ export type Envelope = {
   nfreq: number;
 };
 
+export type TextResource = {
+  number: number;
+  text: string;
+};
+
 export type StepEnvelope = Envelope & {
   commands: Array<any>;
 };
@@ -46,6 +51,7 @@ export type VoiceData = {
   opllPatches: Array<OpllPatch>;
   envelopes: Array<StepEnvelope | ADSREnvelope>;
   sccPatches: Array<SccPatch>;
+  texts: Array<TextResource>;
   psgTunes: number[];
   opllTunes: number[];
 };

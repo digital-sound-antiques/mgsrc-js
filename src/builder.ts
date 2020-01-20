@@ -1,4 +1,14 @@
-import { SccPatch, OpllPatch, Envelope, StepEnvelope, ADSREnvelope, VoiceData, MGSObject, TrackData } from "./types";
+import {
+  SccPatch,
+  OpllPatch,
+  Envelope,
+  StepEnvelope,
+  ADSREnvelope,
+  VoiceData,
+  MGSObject,
+  TrackData,
+  TextResource
+} from "./types";
 
 import { toOPLLVoice } from "./opll-voice";
 
@@ -56,6 +66,10 @@ export function declareEnvelope(env: Envelope): string {
   }
 }
 
+export function declareText(text: TextResource): string {
+  return `@m${text.number}={ "${text.text}" }`;
+}
+
 export function buildAllocList(mgs: MGSObject) {
   const allocMap: { [key: number]: number } = {};
   if (mgs.voice) {
@@ -74,21 +88,25 @@ export function buildAllocList(mgs: MGSObject) {
   return `{ ${res.join(", ")} }`;
 }
 
-export function buildMMLHeader(mgs: MGSObject) {
-  const titleLines = mgs.title
+function makeTextBlock(text: string): string | null {
+  const lines = text
     .split(/\r\n/)
     .filter(e => e !== "")
     .map(e => `"${e}"`);
-
-  let titleCommand;
-  if (2 <= titleLines.length) {
-    titleCommand = `#title {\n  ${titleLines.join("\n  ")}\n}`;
-  } else if (titleLines.length == 0 || titleLines[0] == '""') {
-    titleCommand = "";
-  } else {
-    titleCommand = `#title { ${titleLines.join("\n")} }`;
+  if (lines.length === 0) {
+    return null;
   }
-  return `; MML decompiled from MGS${mgs.version} object.
+  if (lines.length === 1) {
+    return `{ ${lines.join("\n")} }`;
+  }
+  return `{\n  ${lines.join("\n  ")}\n}`;
+}
+
+export function buildMMLHeader(mgs: MGSObject) {
+  const titleBlock = makeTextBlock(mgs.title);
+  const titleCommand = titleBlock ? `#title ${titleBlock}` : "";
+  return `; decompiler: mgsrc-js
+; mgs-version: ${mgs.version}
 #opll_mode ${mgs.settings.opllMode}
 #lfo_mode ${mgs.settings.lfoMode}
 #machine_id ${mgs.settings.machineId}
@@ -103,12 +121,19 @@ export function buildVoiceMML(data: VoiceData): string {
   for (const patch of data.opllPatches) {
     res.push(declareOpllVoice(patch));
   }
+  res.push("");
   for (const patch of data.sccPatches) {
     res.push(declareSccVoice(patch));
   }
+  res.push("");
   for (const envelope of data.envelopes) {
     res.push(declareEnvelope(envelope));
   }
+  res.push("");
+  for (const text of data.texts) {
+    res.push(declareText(text));
+  }
+  res.push("");
   return res.join("\n");
 }
 
@@ -124,7 +149,7 @@ export function buildTrackMML(data: TrackData): string {
     stepCount = 0;
   };
   for (const cmd of data.commands) {
-    if (80 <= line.length) {
+    if (!inPortamento && 80 <= line.length) {
       commitLine();
     }
     if (cmd.count) {

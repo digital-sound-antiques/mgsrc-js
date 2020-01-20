@@ -8,20 +8,24 @@ import {
   VoiceData,
   MGSObject,
   TrackCommand,
-  TrackData
+  TrackData,
+  TextResource
 } from "./types";
+import { WSAECONNREFUSED } from "constants";
 
 const notes = ["c", "c+", "d", "d+", "e", "f", "f+", "g", "g+", "a", "a+", "b", "r", "r", "r", "r"];
 
 function c2l(n: number): string {
-  if (192 % n === 0) {
-    return `${192 / n}`;
-  }
-  if ((192 + 96) % n === 0) {
-    return `${(192 + 96) / n}.`;
-  }
-  if ((192 + 96 + 48) % n === 0) {
-    return `${(192 + 96 + 48) / n}..`;
+  if (2 < n) {
+    if (192 % n === 0) {
+      return `${192 / n}`;
+    }
+    if ((192 + 96) % n === 0) {
+      return `${(192 + 96) / n}.`;
+    }
+    if ((192 + 96 + 48) % n === 0) {
+      return `${(192 + 96 + 48) / n}..`;
+    }
   }
   return "%" + n;
 }
@@ -76,21 +80,53 @@ export function parseStepEnvelope(data: ArrayBuffer): Array<{ mml: string }> {
   return res;
 }
 
+function decodeMGSText(msg: Array<number>): string {
+  const seq = Array<number>();
+  let i = 0;
+  while (i < msg.length) {
+    const ch = msg[i++];
+    if (ch < 0x20 || 0x80 === ch || (0xf0 <= ch && ch <= 0xff)) {
+      const s = "\\x" + ("0" + ch.toString(16)).slice(-2);
+      seq.push(s.charCodeAt(0));
+      seq.push(s.charCodeAt(1));
+      seq.push(s.charCodeAt(2));
+      seq.push(s.charCodeAt(3));
+    } else if (0x81 <= ch && ch <= 0x9f) {
+      // SJIS 2-byte character
+      seq.push(ch);
+      seq.push(msg[i++]);
+    } else if (0xe0 <= ch && ch <= 0xef) {
+      // SJIS 2-byte character
+      seq.push(ch);
+      seq.push(msg[i++]);
+    } else if (ch === 34 || ch === 92) {
+      // double quote or backslash
+      seq.push(92);
+      seq.push(ch);
+    } else {
+      // Other characters
+      seq.push(ch);
+    }
+  }
+  return String.fromCharCode(...Encoding.convert(seq, "UNICODE", "SJIS"));
+}
+
 export function parseVoiceTrack(data: ArrayBuffer): VoiceData {
   let idx = 0;
   const opllPatches = Array<OpllPatch>();
   const sccPatches = Array<SccPatch>();
   const envelopes = Array<StepEnvelope | ADSREnvelope>();
+  const texts = Array<TextResource>();
   const v = new DataView(data);
   while (idx < v.byteLength) {
     let cmd = v.getUint8(idx++);
     if (cmd === 0x00) {
-      const number = v.getUint8(idx++) & 0x1f;
+      const number = v.getUint8(idx++);
       const patch = [];
       for (let i = 0; i < 8; i++) {
         patch.push(v.getUint8(idx++));
       }
-      opllPatches.push({ number, data: patch });
+      opllPatches.push({ number: number & 0x1f, data: patch });
     } else if (cmd === 0x02) {
       const number = v.getUint8(idx++) & 0x1f;
       const m = v.getUint8(idx++);
@@ -119,14 +155,26 @@ export function parseVoiceTrack(data: ArrayBuffer): VoiceData {
       sccPatches.push({ number, data: patch });
     } else if (cmd === 0x04) {
     } else if (cmd === 0x05) {
+    } else if (cmd === 0x06) {
+      const number = v.getUint8(idx++);
+      const buf = [];
+      while (true) {
+        const c = v.getUint8(idx++);
+        if (c === 0) break;
+        buf.push(c);
+      }
+      texts.push({ number, text: decodeMGSText(buf) });
     } else if (cmd === 0xff) {
       break;
+    } else {
+      throw new Error("Unknown voice track command: 0x" + cmd.toString(16));
     }
   }
   return {
     byteLength: idx,
     opllPatches,
     envelopes,
+    texts,
     sccPatches,
     psgTunes: [],
     opllTunes: []
@@ -284,6 +332,8 @@ export function parseTrack(data: ArrayBuffer, track: number, rhythm: boolean): T
       _wrt({ mml: "v" + (cmd & 0xf) });
     } else if (0xd0 <= cmd && cmd <= 0xdf) {
       _wrt({ mml: "o" + ((cmd & 0x7) + 1) });
+    } else if (0xe0 <= cmd && cmd <= 0xe3) {
+      _wrt({ mml: "/" + (cmd & 0x3) });
     } else if (cmd === 0xff) {
       break;
     } else {
