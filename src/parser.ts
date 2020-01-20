@@ -119,6 +119,9 @@ export function parseVoiceTrack(data: ArrayBuffer): VoiceData {
   const opllPatchMaps = Array<OpllPatchMap>();
   const texts = Array<TextResource>();
   const v = new DataView(data);
+  let psgTunes: Array<number> | null = null;
+  let opllTunes: Array<number> | null = null;
+
   while (idx < v.byteLength) {
     let cmd = v.getUint8(idx++);
     if (cmd === 0x00) {
@@ -159,7 +162,17 @@ export function parseVoiceTrack(data: ArrayBuffer): VoiceData {
       }
       sccPatches.push({ number, data: patch });
     } else if (cmd === 0x04) {
+      psgTunes = [];
+      for (let i = 0; i < 12; i++) {
+        psgTunes.push(v.getUint16(idx, true));
+        idx += 2;
+      }
     } else if (cmd === 0x05) {
+      opllTunes = [];
+      for (let i = 0; i < 12; i++) {
+        opllTunes.push(v.getUint16(idx, true));
+        idx += 2;
+      }
     } else if (cmd === 0x06) {
       const number = v.getUint8(idx++);
       const buf = [];
@@ -182,12 +195,33 @@ export function parseVoiceTrack(data: ArrayBuffer): VoiceData {
     envelopes,
     texts,
     sccPatches,
-    psgTunes: [],
-    opllTunes: []
+    psgTunes,
+    opllTunes,
   };
 }
 
-export function parseTrack(data: ArrayBuffer, track: number, rhythm: boolean): TrackData {
+function parseLegacyRhythmTrack(data: ArrayBuffer, track: number): TrackData {
+  const res = new Array<TrackCommand>();
+  const v = new DataView(data);
+  let idx = 0;
+  while (idx < v.byteLength) {
+    let cmd = v.getUint8(idx++);
+    const _wrt = (obj: { mml: string; count?: number; loop?: number }) => res.push({ cmd, ...obj });
+    if (cmd === 0xff) {
+      break;
+    } else {
+      _wrt({ mml: ("0" + cmd.toString(16)).slice(-2) + " " });
+    }
+  }
+  return {
+    track,
+    byteLength: idx,
+    commands: res,
+    incomplete: true
+  };
+}
+
+function parseTrack(data: ArrayBuffer, track: number, rhythm: boolean): TrackData {
   const res = new Array<TrackCommand>();
   const v = new DataView(data);
   let idx = 0;
@@ -338,7 +372,7 @@ export function parseTrack(data: ArrayBuffer, track: number, rhythm: boolean): T
       _wrt({ mml: "v" + (cmd & 0xf) });
     } else if (0xd0 <= cmd && cmd <= 0xdf) {
       _wrt({ mml: "o" + ((cmd & 0x7) + 1) });
-    } else if (0xe0 <= cmd && cmd <= 0xe3) {
+    } else if (0xe0 <= cmd && cmd <= 0xef) {
       _wrt({ mml: "/" + (cmd & 0x3) });
     } else if (cmd === 0xff) {
       break;
@@ -361,14 +395,15 @@ export function parseMGS(data: ArrayBuffer): MGSObject {
     throw new Error("Not a MGS format.");
   }
   const version = String.fromCharCode(d.getUint8(3), d.getUint8(4), d.getUint8(5));
-  if (/^A/.test(version)) {
-    throw new Error(`Unsupported format. This MGS file is compressed with MGSARC.`);
+  if (!/^[0-9]+$/.test(version)) {
+    throw new Error(`Unspported format version: MGS${version}.`);
   }
-  if (parseInt(version) < 304) {
-    throw new Error(
-      `Unsupported format version: v${version.substr(0, 1)}.${version.substr(1)}. v3.10 or greater version is required.`
-    );
+
+  const versionCode = parseInt(version);
+  if (versionCode < 300) {
+    throw new Error(`Unsupported format version: MGS${version}. MGS310 or greater version is required.`);
   }
+
   const titleArray = [];
   let offset = 0;
   for (let i = 8; i < d.byteLength - 1; i++) {
@@ -409,8 +444,13 @@ export function parseMGS(data: ArrayBuffer): MGSObject {
       if (i === 0) {
         voice = parseVoiceTrack(binary);
       } else {
-        const t = parseTrack(binary, i, settings.opllMode === 1 && i === 15);
-        tracks[i] = t;
+        const rhythm = settings.opllMode === 1 && i === 15;
+        let track;
+        if (rhythm && versionCode < 304) {
+          tracks[i] = parseLegacyRhythmTrack(binary, i);
+        } else {
+          tracks[i] = parseTrack(binary, i, rhythm);
+        }
       }
       rawTracks[i] = binary;
     } else {

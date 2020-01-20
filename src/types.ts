@@ -39,6 +39,7 @@ export type TrackData = {
   track: number;
   byteLength: number;
   commands: Array<TrackCommand>;
+  incomplete?: boolean;
 };
 
 export type OpllPatch = {
@@ -58,8 +59,8 @@ export type VoiceData = {
   envelopes: Array<StepEnvelope | ADSREnvelope>;
   sccPatches: Array<SccPatch>;
   texts: Array<TextResource>;
-  psgTunes: number[];
-  opllTunes: number[];
+  psgTunes: number[] | null;
+  opllTunes: number[] | null;
 };
 
 export type MGSObject = {

@@ -118,30 +118,51 @@ ${titleCommand}
 
 export function buildVoiceMML(data: VoiceData): string {
   const res = Array<string>();
-  for (const patch of data.opllPatches) {
-    res.push(declareOpllVoice(patch));
-  }
-  if (0 < data.opllPatches.length) res.push("");
 
-  for (const map of data.opllPatchMaps) {
-    res.push(`@#${map.from}=${map.to}`);
+  if (data.psgTunes) {
+    res.push(`#psg_tune { ${data.psgTunes.join(", ")} }`);
+    res.push("");
   }
-  if (0 < data.opllPatchMaps.length) res.push("");
 
-  for (const patch of data.sccPatches) {
-    res.push(declareSccVoice(patch));
+  if (data.opllTunes) {
+    res.push(`#opll_tune { ${data.opllTunes.join(", ")} }`);
+    res.push("");
   }
-  if (0 < data.sccPatches.length) res.push("");
 
-  for (const envelope of data.envelopes) {
-    res.push(declareEnvelope(envelope));
+  if (0 < data.opllPatches.length) {
+    for (const patch of data.opllPatches) {
+      res.push(declareOpllVoice(patch));
+    }
+    res.push("");
   }
-  if (0 < data.envelopes.length) res.push("");
 
-  for (const text of data.texts) {
-    res.push(declareText(text));
+  if (0 < data.opllPatchMaps.length) {
+    for (const map of data.opllPatchMaps) {
+      res.push(`@#${map.from}=${map.to}`);
+    }
+    res.push("");
   }
-  if (0 < data.texts.length) res.push("");
+
+  if (0 < data.sccPatches.length) {
+    for (const patch of data.sccPatches) {
+      res.push(declareSccVoice(patch));
+    }
+    res.push("");
+  }
+
+  if (0 < data.envelopes.length) {
+    for (const envelope of data.envelopes) {
+      res.push(declareEnvelope(envelope));
+    }
+    res.push("");
+  }
+
+  if (0 < data.texts.length) {
+    for (const text of data.texts) {
+      res.push(declareText(text));
+    }
+    res.push("");
+  }
 
   return res.join("\n");
 }
@@ -172,7 +193,7 @@ export function buildTrackMML(data: TrackData): string {
       if (!inPortamento && (cmd.loop === 0 || stepCount > 192 * 2)) {
         commitLine();
       }
-      line += cmd.mml + " ";
+      line += cmd.mml;
     } else {
       line += cmd.mml;
     }
@@ -187,6 +208,9 @@ export function buildTrackMML(data: TrackData): string {
   commitLine();
 
   const H = getTrackHeader(data.track);
+  if (data.incomplete) {
+    return `${H} ; MGS300 rhythm track is not supported.\n` + lines.map(line => `${H} ; ${line}`).join("\n");
+  }
   return lines.map(line => `${H} ${line}`).join("\n");
 }
 
