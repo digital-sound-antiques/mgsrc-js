@@ -320,7 +320,7 @@ function parseTrack(data: ArrayBuffer, track: number, rhythm: boolean): TrackDat
       const n4 = v.getInt8(idx++);
       _wrt({ mml: `h${n1 - 1},${n2},${n3 - 1},${track < 9 ? -n4 : n4}` });
     } else if (cmd === 0x55) {
-      const n = v.getUint16(idx, true);
+      const n = v.getInt16(idx, true);
       idx += 2;
       _wrt({ mml: "@p" + n });
     } else if (cmd === 0x57) {

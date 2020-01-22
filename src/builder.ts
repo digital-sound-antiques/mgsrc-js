@@ -105,8 +105,8 @@ function makeTextBlock(text: string): string | null {
 export function buildMMLHeader(mgs: MGSObject) {
   const titleBlock = makeTextBlock(mgs.title);
   const titleCommand = titleBlock ? `#title ${titleBlock}` : "";
-  return `; decompiler: mgsrc-js
-; mgs-version: ${mgs.version}
+  return `;decompiler: mgsrc-js
+;mgs_version: ${mgs.version}
 #opll_mode ${mgs.settings.opllMode}
 #lfo_mode ${mgs.settings.lfoMode}
 #machine_id ${mgs.settings.machineId}
