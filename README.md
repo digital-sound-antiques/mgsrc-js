@@ -2,7 +2,7 @@
 
 A decompiler for MGSDRV object.
 
-- [mgs data format](https://github.com/digital-sound-antiques/mgsc/blob/master/mgs-format.md)
+- [MGSDRV data format](https://github.com/digital-sound-antiques/mgsc/blob/master/mgs-format.md)
 
 # Install
 ```
