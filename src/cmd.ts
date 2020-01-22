@@ -2,7 +2,7 @@ import fs from "fs";
 import commandLineArgs from "command-line-args";
 import commandLineUsage from "command-line-usage";
 
-import mgs2mml from ".";
+import mgs2mml, { uncompress } from ".";
 
 const optionDefinitions = [
   {
@@ -66,6 +66,7 @@ function main(argv: string[]) {
   }
 
   const buf = fs.readFileSync(options.input);
+
   try {
     const mml = mgs2mml(toArrayBuffer(buf));
     if (options.output) {
