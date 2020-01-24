@@ -11,14 +11,19 @@ npm install -g mgsrc-js
 
 # Usage
 ```
+mgsrc-js
+
+  Decompiler for MGSDRV data object. 
+
 SYNOPSIS
 
   mgsrc-js [<option>] <file> 
 
 OPTIONS
 
-  -o, --output file   Output MML file. The standard output is used if not speicified. 
-  -i, --input file    Input MGS file.                                                 
-  -v, --version       Print version.                                                  
-  -h, --help          Show this help.  
+  -o, --output file   Specify output file. The standard output is used if not speicified. 
+  -i, --input file    Input MGS file.                                                     
+  -u, --uncompress    Uncompress input without decompiling.                               
+  -v, --version       Print version.                                                      
+  -h, --help          Show this help.   
 ```

@@ -62,6 +62,7 @@ export function uncompress(buf: ArrayBuffer) {
     res[i] = d[i];
   }
   res[3] = "3".charCodeAt(0); // fix MGSAxx -> MGS3xx
+  res[rp - 3] &= 0x7f; // drop compressions flag.
 
   let _B = 1;
   let _C = 0;
@@ -110,5 +111,5 @@ export function uncompress(buf: ArrayBuffer) {
     }
   }
 
-  return res.buffer.slice(res.byteOffset);
+  return res.buffer.slice(res.byteOffset, res.byteOffset + wp);
 }

@@ -3,13 +3,14 @@ import commandLineArgs from "command-line-args";
 import commandLineUsage from "command-line-usage";
 
 import mgs2mml, { uncompress } from ".";
+import { isCompressed } from "./uncompress";
 
 const optionDefinitions = [
   {
     name: "output",
     alias: "o",
     typeLabel: "{underline file}",
-    description: "Output MML file. The standard output is used if not speicified.",
+    description: "Specify output file. The standard output is used if not speicified.",
     type: String
   },
   {
@@ -18,6 +19,12 @@ const optionDefinitions = [
     typeLabel: "{underline file}",
     defaultOption: true,
     description: "Input MGS file."
+  },
+  {
+    name: "uncompress",
+    alias: "u",
+    description: "Uncompress input without decompiling.",
+    type: Boolean
   },
   {
     name: "version",
@@ -36,7 +43,7 @@ const optionDefinitions = [
 const sections = [
   {
     header: "mgsrc-js",
-    content: "Reverse Compiler for MGSDRV Format."
+    content: "Decompiler for MGSDRV data object."
   },
   {
     header: "SYNOPSIS",
@@ -65,15 +72,27 @@ function main(argv: string[]) {
     return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength);
   }
 
-  const buf = fs.readFileSync(options.input);
-
   try {
-    const mml = mgs2mml(toArrayBuffer(buf));
-    if (options.output) {
-      fs.writeFileSync(options.output, mml, { encoding: "utf-8" });
+    const buf = toArrayBuffer(fs.readFileSync(options.input));
+
+    if (options.uncompress) {
+      if (!isCompressed(buf)) {
+        throw Error("Input file is not compressed.");
+      }
+      const out = uncompress(buf);
+      if (options.output) {
+        fs.writeFileSync(options.output, Buffer.from(out));
+      } else {
+        process.stdout.write(new Uint8Array(out));
+      }
     } else {
-      process.stdout.write(mml);
-      process.stdout.write("\n");
+      const mml = mgs2mml(buf);
+      if (options.output) {
+        fs.writeFileSync(options.output, mml, { encoding: "utf-8" });
+      } else {
+        process.stdout.write(mml);
+        process.stdout.write("\n");
+      }
     }
   } catch (e) {
     console.error(e.message);
