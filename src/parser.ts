@@ -12,6 +12,7 @@ import {
   TextResource,
   OpllPatchMap
 } from "./types";
+import { runInThisContext } from "vm";
 
 const notes = ["c", "c+", "d", "d+", "e", "f", "f+", "g", "g+", "a", "a+", "b", "r", "r", "r", "r"];
 
@@ -196,28 +197,7 @@ export function parseVoiceTrack(data: ArrayBuffer): VoiceData {
     texts,
     sccPatches,
     psgTunes,
-    opllTunes,
-  };
-}
-
-function parseLegacyRhythmTrack(data: ArrayBuffer, track: number): TrackData {
-  const res = new Array<TrackCommand>();
-  const v = new DataView(data);
-  let idx = 0;
-  while (idx < v.byteLength) {
-    let cmd = v.getUint8(idx++);
-    const _wrt = (obj: { mml: string; count?: number; loop?: number }) => res.push({ cmd, ...obj });
-    if (cmd === 0xff) {
-      break;
-    } else {
-      _wrt({ mml: ("0" + cmd.toString(16)).slice(-2) + " " });
-    }
-  }
-  return {
-    track,
-    byteLength: idx,
-    commands: res,
-    incomplete: true
+    opllTunes
   };
 }
 
@@ -226,11 +206,33 @@ function parseTrack(data: ArrayBuffer, track: number, rhythm: boolean): TrackDat
   const v = new DataView(data);
   let idx = 0;
   let lvalue = 48;
+  let additionalLength = 0;
+
+  const readCounts = () => {
+    let n = v.getUint8(idx++);
+    let res: [number] = [n];
+    while (n == 255) {
+      n = v.getUint8(idx++);
+      res.push(n);
+    }
+    return res;
+  };
 
   while (idx < v.byteLength) {
     let cmd = v.getUint8(idx++);
     const _wrt = (obj: { mml: string; count?: number; loop?: number }) => res.push({ cmd, ...obj });
-    if (rhythm && (cmd & 0xe0) === 0x20) {
+    if (rhythm && cmd <= 0x1f) {
+      // mgsdrv 3.00 command
+      const counts = readCounts();
+      const flag = cmd & 0x1f;
+      const n = counts[0];
+      _wrt({ mml: getRhythmNote(flag) + c2l(n), count: n });
+      for (let i = 1; i < counts.length; i++) {
+        const n = counts[i];
+        _wrt({ mml: "r" + c2l(n), count: n });
+        additionalLength += 2;
+      }
+    } else if (rhythm && cmd <= 0x3f) {
       const n = v.getUint8(idx++);
       const flag = cmd & 0x1f;
       _wrt({ mml: getRhythmNote(flag) + c2l(n), count: n });
@@ -238,9 +240,16 @@ function parseTrack(data: ArrayBuffer, track: number, rhythm: boolean): TrackDat
       const flag = cmd & 0x1f;
       _wrt({ mml: getRhythmNote(flag) + ":", count: lvalue });
     } else if (cmd <= 0x0c) {
-      // mgsdrv 3.00 command.
-      const n = v.getUint8(idx++);
-      _wrt({ mml: `${notes[cmd & 0xf]}${c2l(n)}`, count: n });
+      // mgsdrv 3.00 command
+      const counts = readCounts();
+      for (let i = 0; i < counts.length; i++) {
+        const n = counts[i];
+        _wrt({ mml: `${notes[cmd & 0xf]}${c2l(n)}`, count: n });
+        if (i != counts.length - 1) {
+          additionalLength += 3;
+          _wrt({ mml: "&" });
+        }
+      }
     } else if (0x10 <= cmd && cmd <= 0x1c) {
       // mgsdrv 3.00 command.
       _wrt({ mml: notes[cmd & 0xf], count: lvalue });
@@ -383,7 +392,8 @@ function parseTrack(data: ArrayBuffer, track: number, rhythm: boolean): TrackDat
   return {
     track,
     byteLength: idx,
-    commands: res
+    commands: res,
+    additionalLength
   };
 }
 
@@ -445,12 +455,7 @@ export function parseMGS(data: ArrayBuffer): MGSObject {
         voice = parseVoiceTrack(binary);
       } else {
         const rhythm = settings.opllMode === 1 && i === 15;
-        let track;
-        if (rhythm && versionCode < 304) {
-          tracks[i] = parseLegacyRhythmTrack(binary, i);
-        } else {
-          tracks[i] = parseTrack(binary, i, rhythm);
-        }
+        tracks[i] = parseTrack(binary, i, rhythm);
       }
       rawTracks[i] = binary;
     } else {

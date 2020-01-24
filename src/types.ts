@@ -40,6 +40,7 @@ export type TrackData = {
   byteLength: number;
   commands: Array<TrackCommand>;
   incomplete?: boolean;
+  additionalLength: number;
 };
 
 export type OpllPatch = {

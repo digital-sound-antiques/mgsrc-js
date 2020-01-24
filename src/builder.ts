@@ -78,7 +78,7 @@ export function buildAllocList(mgs: MGSObject) {
   for (let i = 1; i < 18; i++) {
     const track = mgs.tracks[i];
     if (track) {
-      allocMap[i] = track.byteLength;
+      allocMap[i] = track.byteLength + track.additionalLength;
     }
   }
   const res = [];
@@ -174,7 +174,10 @@ export function buildTrackMML(data: TrackData): string {
   let inPortamento = false;
 
   const commitLine = () => {
-    lines.push(line);
+    const a = line.split("\n");
+    for (const e of a) {
+      lines.push(e);
+    }
     line = "";
     stepCount = 0;
   };
@@ -200,7 +203,7 @@ export function buildTrackMML(data: TrackData): string {
 
     if (cmd.cmd === 0x53) {
       inPortamento = true;
-    } else if (0x20 <= cmd.cmd && cmd.cmd <= 0x3f) {
+    } else if (0x00 <= cmd.cmd && cmd.cmd <= 0x3f) {
       inPortamento = false;
     }
   }
@@ -209,7 +212,7 @@ export function buildTrackMML(data: TrackData): string {
 
   const H = getTrackHeader(data.track);
   if (data.incomplete) {
-    return `${H} ; MGS300 rhythm track is not supported.\n` + lines.map(line => `${H} ; ${line}`).join("\n");
+    return `${H} ; MGS300 rhythm track is not supported.\n` + lines.map(line => `${H} ${line}`).join("\n");
   }
   return lines.map(line => `${H} ${line}`).join("\n");
 }
