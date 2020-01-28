@@ -68,6 +68,7 @@ export type MGSObject = {
   version: string;
   title: string;
   settings: {
+    isCompressed: boolean;
     opllMode: number;
     lfoMode: number;
     machineId: number;

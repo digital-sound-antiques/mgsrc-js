@@ -3,7 +3,7 @@ import commandLineArgs from "command-line-args";
 import commandLineUsage from "command-line-usage";
 
 import mgs2mml, { uncompress } from ".";
-import { isCompressed } from "./uncompress";
+import { parseMGSHeader } from "./parser";
 
 const optionDefinitions = [
   {
@@ -23,7 +23,7 @@ const optionDefinitions = [
   {
     name: "uncompress",
     alias: "u",
-    description: "Uncompress input without decompiling.",
+    description: "Uncompress input file without decompiling.",
     type: Boolean
   },
   {
@@ -76,8 +76,8 @@ function main(argv: string[]) {
     const buf = toArrayBuffer(fs.readFileSync(options.input));
 
     if (options.uncompress) {
-      if (!isCompressed(buf)) {
-        throw Error("Input file is not compressed.");
+      if (!parseMGSHeader(buf).isCompressed) {
+        throw Error("Not a compressed MGS file.");
       }
       const out = uncompress(buf);
       if (options.output) {
@@ -95,7 +95,8 @@ function main(argv: string[]) {
       }
     }
   } catch (e) {
-    console.error(e.message);
+    console.error(e);
+    // console.error(e.message);
   }
 }
 

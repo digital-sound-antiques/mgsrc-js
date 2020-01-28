@@ -12,7 +12,7 @@ import {
   TextResource,
   OpllPatchMap
 } from "./types";
-import { runInThisContext } from "vm";
+import { uncompress } from "./uncompress";
 
 const notes = ["c", "c+", "d", "d+", "e", "f", "f+", "g", "g+", "a", "a+", "b", "r", "r", "r", "r"];
 
@@ -397,14 +397,43 @@ function parseTrack(data: ArrayBuffer, track: number, rhythm: boolean): TrackDat
   };
 }
 
-export function parseMGS(data: ArrayBuffer): MGSObject {
-  const d = new DataView(data);
+export function parseMGSHeader(
+  buf: ArrayBuffer
+): { magic: string; version: string; settings: number; isCompressed: boolean } {
+  const d = new Uint8Array(buf);
+  const magic = String.fromCharCode(d[0], d[1], d[2]);
+  let rp = 0;
 
-  const magic = String.fromCharCode(d.getUint8(0), d.getUint8(1), d.getUint8(2));
-  if (magic !== "MGS") {
-    throw new Error("Not a MGS format.");
+  if (magic != "MGS") {
+    throw new Error("Not a MGS object.");
   }
-  const version = String.fromCharCode(d.getUint8(3), d.getUint8(4), d.getUint8(5));
+
+  const version = String.fromCharCode(d[3], d[4], d[5]);
+
+  while (rp < d.byteLength) {
+    if (d[rp++] === 0) break;
+  }
+
+  if (rp === d.byteLength) {
+    throw new Error("Not a MGS object.");
+  }
+
+  const settings = d[rp++];
+  const isCompressed = settings & 0x80 ? true : false;
+
+  return {
+    magic,
+    version,
+    settings,
+    isCompressed
+  };
+}
+
+export function parseMGS(mgs: ArrayBuffer): MGSObject {
+  let { version, isCompressed } = parseMGSHeader(mgs);
+  const buf = isCompressed ? uncompress(mgs) : mgs;
+  version = parseMGSHeader(buf).version;
+
   if (!/^[0-9]+$/.test(version)) {
     throw new Error(`Unspported format version: MGS${version}.`);
   }
@@ -413,6 +442,8 @@ export function parseMGS(data: ArrayBuffer): MGSObject {
   if (versionCode < 300) {
     throw new Error(`Unsupported format version: MGS${version}. MGS310 or greater version is required.`);
   }
+
+  const d = new DataView(buf);
 
   const titleArray = [];
   let offset = 0;
@@ -433,6 +464,7 @@ export function parseMGS(data: ArrayBuffer): MGSObject {
   d.getUint8(offset++); // skip first byte
   const flags = d.getUint8(offset++);
   const settings = {
+    isCompressed,
     opllMode: flags & 1,
     lfoMode: (flags >> 1) & 1,
     machineId: (flags >> 2) & 7,
