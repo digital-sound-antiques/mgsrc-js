@@ -207,6 +207,7 @@ function parseTrack(data: ArrayBuffer, track: number, rhythm: boolean): TrackDat
   let idx = 0;
   let lvalue = 48;
   let additionalLength = 0;
+  let jumpMarkerCount = 0;
 
   const readCounts = () => {
     let n = v.getUint8(idx++);
@@ -362,6 +363,7 @@ function parseTrack(data: ArrayBuffer, track: number, rhythm: boolean): TrackDat
       _wrt({ mml: `y${n1},${n2}` });
     } else if (cmd === 0x5d) {
       _wrt({ mml: "$" });
+      jumpMarkerCount++;
     } else if (cmd === 0x5f) {
       const n = v.getInt8(idx++);
       _wrt({ mml: "@\\" + n });
@@ -393,7 +395,8 @@ function parseTrack(data: ArrayBuffer, track: number, rhythm: boolean): TrackDat
     track,
     byteLength: idx,
     commands: res,
-    additionalLength
+    additionalLength,
+    jumpMarkerCount
   };
 }
 

@@ -41,6 +41,7 @@ export type TrackData = {
   commands: Array<TrackCommand>;
   incomplete?: boolean;
   additionalLength: number;
+  jumpMarkerCount: number;
 };
 
 export type OpllPatch = {
