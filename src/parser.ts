@@ -395,7 +395,7 @@ function parseTrack(data: ArrayBuffer, track: number, rhythm: boolean): TrackDat
       _wrt({ mml: "$" });
       jumpMarkerCount++;
     } else if (cmd === 0x5f) {
-      const n = v.getInt8(idx++);
+      const n = v.getUint8(idx++);
       _wrt({ mml: "@\\" + n });
     } else if (cmd === 0x60) {
       const n = v.getUint8(idx++);
