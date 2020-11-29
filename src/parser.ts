@@ -211,6 +211,7 @@ function parseTrack(data: ArrayBuffer, track: number, rhythm: boolean): TrackDat
   let lvalue = 48;
   let additionalLength = 0;
   let jumpMarkerCount = 0;
+  let oct = 3;
 
   const readCounts = () => {
     let n = v.getUint8(idx++);
@@ -310,8 +311,10 @@ function parseTrack(data: ArrayBuffer, track: number, rhythm: boolean): TrackDat
       const n = v.getUint8(idx++);
       _wrt({ mml: "n" + n });
     } else if (cmd === 0x4e) {
+      oct = Math.min(7, oct + 1);
       _wrt({ mml: ">" });
     } else if (cmd === 0x4f) {
+      oct = Math.max(0, oct - 1);
       _wrt({ mml: "<" });
     } else if (cmd === 0x50) {
       const n = v.getInt8(idx++);
@@ -326,6 +329,30 @@ function parseTrack(data: ArrayBuffer, track: number, rhythm: boolean): TrackDat
     } else if (cmd === 0x53) {
       const key = v.getUint8(idx++);
       _wrt({ mml: `${notes[key]}_` });
+
+      // Workaround for MGSDRV bug: absolute octave `o` command is treated as +1 before next note.
+      while (true) {
+        const nxt = v.getUint8(idx);
+        if (0xd0 <= nxt && nxt <= 0xdf) {
+          cmd = v.getUint8(idx++);
+          oct = (cmd & 0x7) + 1;
+          _wrt({ mml: "o" + Math.max(1, (oct - 1)) });
+          continue;
+        } else if (nxt === 0x4e) {
+          cmd = v.getUint8(idx++);
+          oct = Math.min(7, oct + 1);
+          _wrt({ mml: ">" });
+          continue;
+        }
+        if (nxt === 0x4f) {
+          cmd = v.getUint8(idx++);
+          oct = Math.max(0, oct - 1);
+          _wrt({ mml: "<" });
+          continue;
+        }
+        break;
+      }
+
     } else if (cmd === 0x54) {
       const n1 = v.getUint8(idx++);
       const n2 = v.getUint8(idx++);
@@ -385,7 +412,8 @@ function parseTrack(data: ArrayBuffer, track: number, rhythm: boolean): TrackDat
     } else if (0xc0 <= cmd && cmd <= 0xcf) {
       _wrt({ mml: "v" + (cmd & 0xf) });
     } else if (0xd0 <= cmd && cmd <= 0xdf) {
-      _wrt({ mml: "o" + ((cmd & 0x7) + 1) });
+      oct = (cmd & 0x7);
+      _wrt({ mml: "o" + (oct + 1) });
     } else if (0xe0 <= cmd && cmd <= 0xef) {
       _wrt({ mml: "/" + (cmd & 0x3) });
     } else if (cmd === 0xff) {
