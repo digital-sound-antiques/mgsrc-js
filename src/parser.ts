@@ -431,9 +431,29 @@ function parseTrack(data: ArrayBuffer, track: number, rhythm: boolean): TrackDat
   };
 }
 
+export function parseMGSTitle(buf: ArrayBuffer) {
+  const titleArray = [];
+  const d = new DataView(buf);
+  let offset = 0;
+  for (let i = 8; i < d.byteLength - 1; i++) {
+    const c = d.getUint8(i);
+    if (c === 0x1a) {
+      return String.fromCharCode(...Encoding.convert(titleArray, "UNICODE", "SJIS"));
+    }
+    titleArray.push(c);
+  }
+  throw new Error("MGS data is corrupted. No EOF marker found after the title section.");
+}
+
 export function parseMGSHeader(
   buf: ArrayBuffer
-): { magic: string; version: string; settings: number; isCompressed: boolean } {
+): { 
+  binaryHeaderOffset: number; // Binary header start offset
+  magic: string; 
+  version: string; 
+  settings: number; 
+  isCompressed: boolean;
+} {
   const d = new Uint8Array(buf);
   const magic = String.fromCharCode(d[0], d[1], d[2]);
   let rp = 0;
@@ -452,10 +472,13 @@ export function parseMGSHeader(
     throw new Error("Not a MGS object.");
   }
 
+  const binaryHeaderOffset = rp - 1;
+
   const settings = d[rp++];
   const isCompressed = settings & 0x80 ? true : false;
 
   return {
+    binaryHeaderOffset,
     magic,
     version,
     settings,
@@ -464,9 +487,9 @@ export function parseMGSHeader(
 }
 
 export function parseMGS(mgs: ArrayBuffer): MGSObject {
-  let { version, isCompressed } = parseMGSHeader(mgs);
+  let { isCompressed } = parseMGSHeader(mgs);
   const buf = isCompressed ? uncompress(mgs) : mgs;
-  version = parseMGSHeader(buf).version;
+  let { version, binaryHeaderOffset } = parseMGSHeader(buf);
 
   if (!/^[0-9]+$/.test(version)) {
     throw new Error(`Unspported format version: MGS${version}.`);
@@ -477,22 +500,11 @@ export function parseMGS(mgs: ArrayBuffer): MGSObject {
     throw new Error(`Unsupported format version: MGS${version}. MGS310 or greater version is required.`);
   }
 
+  const title = parseMGSTitle(buf);
   const d = new DataView(buf);
 
   const titleArray = [];
-  let offset = 0;
-  for (let i = 8; i < d.byteLength - 1; i++) {
-    const c = d.getUint8(i);
-    if (c === 0x1a) {
-      offset = i + 1;
-      break;
-    }
-    titleArray.push(c);
-  }
-  if (offset === 0) {
-    throw new Error("MGS data is corrupted. No EOF marker found after the title section.");
-  }
-  const title = String.fromCharCode(...Encoding.convert(titleArray, "UNICODE", "SJIS"));
+  let offset = binaryHeaderOffset;
   const root = offset;
 
   d.getUint8(offset++); // skip first byte
