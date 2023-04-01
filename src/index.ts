@@ -5,7 +5,7 @@ export * from "./builder";
 export * from "./parser";
 export * from "./uncompress";
 
-export default function mgs2mml(mgs: ArrayBuffer): string {
+export function mgs2mml(mgs: ArrayBuffer): string {
   return buildMML(parseMGS(mgs));
 }
 

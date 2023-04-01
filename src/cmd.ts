@@ -2,7 +2,7 @@ import fs from "fs";
 import commandLineArgs from "command-line-args";
 import commandLineUsage from "command-line-usage";
 
-import mgs2mml, { uncompress } from ".";
+import { mgs2mml, uncompress } from ".";
 import { parseMGSHeader } from "./parser";
 
 const optionDefinitions = [

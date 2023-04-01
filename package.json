@@ -1,6 +1,6 @@
 {
   "name": "mgsrc-js",
-  "version": "1.4.2",
+  "version": "2.0.0",
   "description": "Decompiler for MGSDRV object.",
   "main": "dist/index.js",
   "bin": {
@@ -15,31 +15,33 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "prepare": "npm run clean && npm run build",
-    "clean": "rm-cli -ss -r dist",
+    "clean": "rimraf dist",
     "build": "tsc"
   },
   "author": "Mitsutaka Okazaki",
   "license": "ISC",
   "dependencies": {
     "command-line-args": "^5.1.1",
-    "command-line-usage": "^6.1.0",
-    "encoding-japanese": "^1.0.30"
+    "command-line-usage": "^6.1.0"
   },
   "devDependencies": {
-    "@types/command-line-args": "^5.0.0",
-    "@types/command-line-usage": "^5.0.1",
-    "@types/encoding-japanese": "^1.0.15",
-    "@types/node": "^12.12.12",
-    "prettier": "^1.19.1",
-    "rm-cli": "^1.4.2",
-    "ts-node": "^8.4.1",
-    "tslint": "^5.20.1",
-    "tslint-config-prettier": "^1.18.0",
-    "tslint-plugin-prettier": "^2.0.1",
-    "typescript": "^3.4.5"
+    "@types/command-line-args": "^5.2.0",
+    "@types/command-line-usage": "^5.0.2",
+    "@types/node": "^16.0.0",
+    "@typescript-eslint/eslint-plugin": "^5.57.0",
+    "@typescript-eslint/parser": "^5.57.0",
+    "eslint": "^8.37.0",
+    "eslint-config-prettier": "^8.8.0",
+    "prettier": "^2.8.7",
+    "rimraf": "^4.4.1",
+    "typedoc": "^0.23.27",
+    "typescript": "^4.9.0"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/digital-sound-antiques/mgsrc-js"
+  },
+  "engines": {
+    "node": ">=16.0.0"
   }
 }

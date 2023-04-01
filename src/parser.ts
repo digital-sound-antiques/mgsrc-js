@@ -1,5 +1,3 @@
-import Encoding from "encoding-japanese";
-
 import {
   SccPatch,
   OpllPatch,
@@ -112,7 +110,7 @@ function decodeMGSText(msg: Array<number>): string {
       seq.push(ch);
     }
   }
-  return String.fromCharCode(...Encoding.convert(seq, "UNICODE", "SJIS"));
+  return new TextDecoder('ms932').decode(new Uint8Array(seq));
 }
 
 export function parseVoiceTrack(data: ArrayBuffer): VoiceData {
@@ -434,11 +432,10 @@ function parseTrack(data: ArrayBuffer, track: number, rhythm: boolean): TrackDat
 export function parseMGSTitle(buf: ArrayBuffer) {
   const titleArray = [];
   const d = new DataView(buf);
-  let offset = 0;
   for (let i = 8; i < d.byteLength - 1; i++) {
     const c = d.getUint8(i);
     if (c === 0x1a) {
-      return String.fromCharCode(...Encoding.convert(titleArray, "UNICODE", "SJIS"));
+      return new TextDecoder('ms932').decode(new Uint8Array(titleArray));
     }
     titleArray.push(c);
   }
