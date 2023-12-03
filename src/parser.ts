@@ -18,7 +18,7 @@ function c2l(n: number): string {
   if (n === 0) {
     return "%256";
   }
-  if (1 < n) {
+  if (2 < n) {
     if (192 % n === 0) {
       return `${192 / n}`;
     }
@@ -125,7 +125,7 @@ export function parseVoiceTrack(data: ArrayBuffer): VoiceData {
   let opllTunes: Array<number> | null = null;
 
   while (idx < v.byteLength) {
-    let cmd = v.getUint8(idx++);
+    const cmd = v.getUint8(idx++);
     if (cmd === 0x00) {
       const number = v.getUint8(idx++);
       const patch = [];
@@ -206,14 +206,14 @@ function parseTrack(data: ArrayBuffer, track: number, rhythm: boolean): TrackDat
   const res = new Array<TrackCommand>();
   const v = new DataView(data);
   let idx = 0;
-  let lvalue = 48;
+  const lvalue = 48;
   let additionalLength = 0;
   let jumpMarkerCount = 0;
   let oct = 3;
 
   const readCounts = () => {
     let n = v.getUint8(idx++);
-    let res: [number] = [n];
+    const res: [number] = [n];
     while (n == 255) {
       n = v.getUint8(idx++);
       res.push(n);
@@ -484,9 +484,9 @@ export function parseMGSHeader(
 }
 
 export function parseMGS(mgs: ArrayBuffer): MGSObject {
-  let { isCompressed } = parseMGSHeader(mgs);
+  const { isCompressed } = parseMGSHeader(mgs);
   const buf = isCompressed ? uncompress(mgs) : mgs;
-  let { version, binaryHeaderOffset } = parseMGSHeader(buf);
+  const { version, binaryHeaderOffset } = parseMGSHeader(buf);
 
   if (!/^[0-9]+$/.test(version)) {
     throw new Error(`Unspported format version: MGS${version}.`);
@@ -500,7 +500,6 @@ export function parseMGS(mgs: ArrayBuffer): MGSObject {
   const title = parseMGSTitle(buf);
   const d = new DataView(buf);
 
-  const titleArray = [];
   let offset = binaryHeaderOffset;
   const root = offset;
 
@@ -514,7 +513,7 @@ export function parseMGS(mgs: ArrayBuffer): MGSObject {
     disableReverseCompile: flags & 0x80 ? true : false
   };
 
-  let tempo = d.getUint16(offset, true) || 75;
+  const tempo = d.getUint16(offset, true) || 75;
   offset += 2;
 
   let voice: VoiceData | null = null;
